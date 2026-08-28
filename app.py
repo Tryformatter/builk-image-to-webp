@@ -6,8 +6,11 @@ import threading
 from pathlib import Path
 
 from PIL import Image
-from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
-from PySide6.QtGui import QColor, QCloseEvent, QDragEnterEvent, QDropEvent, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QObject, Qt, QThread, QUrl, Signal, Slot
+from PySide6.QtGui import (
+    QColor, QCloseEvent, QDesktopServices, QDragEnterEvent, QDropEvent, QIcon,
+    QPainter, QPixmap,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QCheckBox, QFileDialog, QFrame, QHBoxLayout,
     QHeaderView, QLabel, QLineEdit, QMainWindow, QMessageBox, QProgressBar,
@@ -23,6 +26,12 @@ from converter import (
 
 APP_NAME = "WebP Forge"
 APP_VERSION = "1.0.0"
+ONLINE_URL = "https://www.tryformatter.com/image/image-to-webp"
+
+
+def resource_path(relative_path: str) -> Path:
+    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return base_path / relative_path
 
 
 class ConversionWorker(QObject):
@@ -87,14 +96,21 @@ class WebPForge(QMainWindow):
 
     @staticmethod
     def _make_icon() -> QIcon:
+        branded_icon = resource_path("assets/tryformatter.ico")
+        if branded_icon.exists():
+            icon = QIcon(str(branded_icon))
+            if not icon.isNull():
+                return icon
+
+        # Fallback used only if the branded asset is missing from a source build.
         pixmap = QPixmap(64, 64)
-        pixmap.fill(QColor("#152238"))
+        pixmap.fill(QColor("#17606E"))
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#34d399"))
+        painter.setBrush(QColor("#DA9A33"))
         painter.drawRoundedRect(11, 13, 42, 38, 9, 9)
-        painter.setBrush(QColor("#152238"))
+        painter.setBrush(QColor("#17606E"))
         painter.drawRoundedRect(18, 20, 28, 24, 5, 5)
         painter.setBrush(QColor("white"))
         painter.drawEllipse(25, 26, 14, 12)
@@ -123,6 +139,12 @@ class WebPForge(QMainWindow):
         title_stack.addWidget(subtitle)
         header_layout.addLayout(title_stack)
         header_layout.addStretch()
+        self.online_button = QPushButton("TryFormatter online  ↗")
+        self.online_button.setObjectName("brandLink")
+        self.online_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.online_button.setToolTip("Use the browser version — no installation or file upload")
+        self.online_button.clicked.connect(self.open_online_version)
+        header_layout.addWidget(self.online_button)
         version = QLabel(f"v{APP_VERSION}")
         version.setObjectName("appSubtitle")
         header_layout.addWidget(version, alignment=Qt.AlignmentFlag.AlignTop)
@@ -298,12 +320,12 @@ class WebPForge(QMainWindow):
     def _apply_styles(self) -> None:
         self.setStyleSheet("""
             QWidget#root, QWidget#body { background: #f4f7fb; color: #263348; font: 9pt 'Segoe UI'; }
-            QFrame#header { background: #152238; }
+            QFrame#header { background: #17606E; }
             QLabel#appTitle { color: white; font: 700 21pt 'Segoe UI'; }
             QLabel#appSubtitle { color: #aebbd0; font-size: 9pt; }
             QFrame#card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; }
-            QLabel#cardTitle { color: #182336; font: 700 11pt 'Segoe UI'; }
-            QLabel#sectionTitle, QLabel#qualityValue { color: #182336; font-weight: 700; }
+            QLabel#cardTitle { color: #174F5B; font: 700 11pt 'Segoe UI'; }
+            QLabel#sectionTitle, QLabel#qualityValue { color: #174F5B; font-weight: 700; }
             QLabel#muted { color: #718096; font-size: 8.5pt; }
             QLabel#status { color: #334155; font-weight: 600; }
             QLabel#dropHint { color: #8290a3; background: transparent; font-size: 10pt; }
@@ -311,13 +333,16 @@ class WebPForge(QMainWindow):
             QPushButton:hover { background: #dfe8f1; }
             QPushButton:pressed { background: #d3dee9; }
             QPushButton:disabled { color: #a4aebb; background: #f1f4f7; }
-            QPushButton#primary { color: white; background: #16a678; padding: 9px 17px; }
-            QPushButton#primary:hover { background: #128962; }
-            QPushButton#primary:pressed { background: #0f7454; }
-            QPushButton#primary:disabled { background: #9bcfbe; color: white; }
+            QPushButton#primary { color: white; background: #17606E; padding: 9px 17px; }
+            QPushButton#primary:hover { background: #124F5B; }
+            QPushButton#primary:pressed { background: #0D404A; }
+            QPushButton#primary:disabled { background: #94B6BC; color: white; }
+            QPushButton#brandLink { color: white; background: #DA9A33; padding: 8px 14px; }
+            QPushButton#brandLink:hover { background: #C88725; }
+            QPushButton#brandLink:pressed { background: #AD711D; }
             QPushButton#danger { color: #b42318; background: #fff0f0; }
             QPushButton#danger:hover { background: #ffe0e0; }
-            QTableWidget { background: white; alternate-background-color: #fafcff; border: 1px solid #e5eaf0; border-radius: 6px; selection-background-color: #d9f5eb; selection-color: #17372d; }
+            QTableWidget { background: white; alternate-background-color: #fafcff; border: 1px solid #e5eaf0; border-radius: 6px; selection-background-color: #DCEDEF; selection-color: #123F49; }
             QHeaderView::section { background: #eef3f8; color: #536176; border: 0; border-bottom: 1px solid #dce4ec; padding: 8px; font-weight: 700; }
             QTableWidget::item { border: 0; padding: 6px; }
             QCheckBox, QRadioButton { spacing: 8px; color: #465367; }
@@ -325,10 +350,10 @@ class WebPForge(QMainWindow):
             QLineEdit { border: 1px solid #d5dde7; border-radius: 5px; padding: 7px; background: white; }
             QLineEdit:disabled { background: #f4f6f8; color: #a4aebb; }
             QSlider::groove:horizontal { height: 5px; background: #dbe4ec; border-radius: 2px; }
-            QSlider::sub-page:horizontal { background: #23b98b; border-radius: 2px; }
-            QSlider::handle:horizontal { background: white; border: 2px solid #16a678; width: 16px; margin: -6px 0; border-radius: 9px; }
+            QSlider::sub-page:horizontal { background: #DA9A33; border-radius: 2px; }
+            QSlider::handle:horizontal { background: white; border: 2px solid #17606E; width: 16px; margin: -6px 0; border-radius: 9px; }
             QProgressBar { border: 0; background: #dce5ed; border-radius: 3px; }
-            QProgressBar::chunk { background: #23b98b; border-radius: 3px; }
+            QProgressBar::chunk { background: #DA9A33; border-radius: 3px; }
             QScrollBar:vertical { background: #f4f6f8; width: 10px; margin: 0; }
             QScrollBar::handle:vertical { background: #c8d2dc; min-height: 24px; border-radius: 5px; }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
@@ -544,6 +569,10 @@ class WebPForge(QMainWindow):
             os.startfile(successful.destination.parent)
         except OSError as exc:
             QMessageBox.critical(self, APP_NAME, f"Could not open the folder:\n{exc}")
+
+    def open_online_version(self) -> None:
+        if not QDesktopServices.openUrl(QUrl(ONLINE_URL)):
+            QMessageBox.warning(self, APP_NAME, f"Could not open the online version:\n{ONLINE_URL}")
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._is_running():
