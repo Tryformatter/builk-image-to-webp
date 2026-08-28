@@ -28,4 +28,10 @@ python app.py
 
 The standalone executable is created at `dist\WebP-Forge.exe`.
 
+## Download a GitHub Actions build
+
+Every push to `main` creates a tested Windows executable. Open the repository's
+**Actions** tab, select the latest **Build Windows executable** run, and download
+the `WebP-Forge-windows-x64` artifact.
+
 Note: animated GIFs are converted using their first frame.

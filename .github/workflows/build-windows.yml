@@ -1,0 +1,58 @@
+name: Build Windows executable
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build WebP Forge for Windows
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          architecture: x64
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build executable
+        shell: pwsh
+        run: .\build.ps1
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath "dist\WebP-Forge.exe")) {
+            throw "dist\WebP-Forge.exe was not created."
+          }
+          Get-Item -LiteralPath "dist\WebP-Forge.exe" |
+            Select-Object Name, Length, LastWriteTime
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: WebP-Forge-windows-x64
+          path: dist/WebP-Forge.exe
+          if-no-files-found: error
+          retention-days: 30
