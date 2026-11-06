@@ -72,13 +72,7 @@ jobs:
           $tag = "build-${{ github.run_number }}"
           $title = "WebP Forge Build ${{ github.run_number }}"
           $sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath "dist\WebP-Forge.exe").Hash.ToLower()
-          $notes = @"
-Automatic Windows x64 build from commit ${{ github.sha }}.
-
-SHA-256: $sha256
-
-Windows may show a SmartScreen reputation warning for unsigned new executables. Download only from this release, verify the checksum above, and scan the file before running it.
-"@
+          $notes = "Automatic Windows x64 build from commit ${{ github.sha }}.`n`nSHA-256: $sha256`n`nWindows may show a SmartScreen reputation warning for unsigned new executables. Download only from this release, verify the checksum above, and scan the file before running it."
 
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
