@@ -57,6 +57,12 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Write SHA-256 checksum
+        shell: pwsh
+        run: |
+          (Get-FileHash -Algorithm SHA256 -LiteralPath "dist\WebP-Forge.exe").Hash.ToLower() |
+            Out-File -FilePath "dist\WebP-Forge.exe.sha256" -Encoding ascii -NoNewline
+
       - name: Publish automatic GitHub release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
@@ -65,14 +71,21 @@ jobs:
         run: |
           $tag = "build-${{ github.run_number }}"
           $title = "WebP Forge Build ${{ github.run_number }}"
-          $notes = "Automatic Windows x64 build from commit ${{ github.sha }}."
+          $sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath "dist\WebP-Forge.exe").Hash.ToLower()
+          $notes = @"
+Automatic Windows x64 build from commit ${{ github.sha }}.
+
+SHA-256: $sha256
+
+Windows may show a SmartScreen reputation warning for unsigned new executables. Download only from this release, verify the checksum above, and scan the file before running it.
+"@
 
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag "dist\WebP-Forge.exe#WebP-Forge.exe" --clobber
+            gh release upload $tag "dist\WebP-Forge.exe#WebP-Forge.exe" "dist\WebP-Forge.exe.sha256#WebP-Forge.exe.sha256" --clobber
             gh release edit $tag --title $title --notes $notes --latest
           } else {
-            gh release create $tag "dist\WebP-Forge.exe#WebP-Forge.exe" `
+            gh release create $tag "dist\WebP-Forge.exe#WebP-Forge.exe" "dist\WebP-Forge.exe.sha256#WebP-Forge.exe.sha256" `
               --target "${{ github.sha }}" `
               --title $title `
               --notes $notes `

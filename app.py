@@ -25,8 +25,11 @@ from converter import (
 
 
 APP_NAME = "WebP Forge"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 ONLINE_URL = "https://www.tryformatter.com/image/image-to-webp"
+ABOUT_URL = "https://www.tryformatter.com/about"
+TOOLS_URL = "https://www.tryformatter.com/all-tools"
+CONTACT_URL = "https://www.tryformatter.com/contact"
 
 
 def resource_path(relative_path: str) -> Path:
@@ -145,6 +148,12 @@ class WebPForge(QMainWindow):
         self.online_button.setToolTip("Use the browser version — no installation or file upload")
         self.online_button.clicked.connect(self.open_online_version)
         header_layout.addWidget(self.online_button)
+        self.about_button = QPushButton("About TryFormatter")
+        self.about_button.setObjectName("headerLink")
+        self.about_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.about_button.setToolTip("Learn about TryFormatter and its privacy-first tools")
+        self.about_button.clicked.connect(self.open_about_page)
+        header_layout.addWidget(self.about_button)
         version = QLabel(f"v{APP_VERSION}")
         version.setObjectName("appSubtitle")
         header_layout.addWidget(version, alignment=Qt.AlignmentFlag.AlignTop)
@@ -340,11 +349,16 @@ class WebPForge(QMainWindow):
             QPushButton#brandLink { color: white; background: #DA9A33; padding: 8px 14px; }
             QPushButton#brandLink:hover { background: #C88725; }
             QPushButton#brandLink:pressed { background: #AD711D; }
+            QPushButton#headerLink { color: white; background: transparent; padding: 8px 10px; }
+            QPushButton#headerLink:hover { background: rgba(255, 255, 255, 0.12); }
+            QPushButton#headerLink:pressed { background: rgba(255, 255, 255, 0.2); }
             QPushButton#danger { color: #b42318; background: #fff0f0; }
             QPushButton#danger:hover { background: #ffe0e0; }
             QTableWidget { background: white; alternate-background-color: #fafcff; border: 1px solid #e5eaf0; border-radius: 6px; selection-background-color: #DCEDEF; selection-color: #123F49; }
             QHeaderView::section { background: #eef3f8; color: #536176; border: 0; border-bottom: 1px solid #dce4ec; padding: 8px; font-weight: 700; }
-            QTableWidget::item { border: 0; padding: 6px; }
+            QTableWidget::item { color: #263348; border: 0; padding: 6px; }
+            QTableWidget::item:alternate { color: #263348; }
+            QTableWidget::item:selected { color: #123F49; }
             QCheckBox, QRadioButton { spacing: 8px; color: #465367; }
             QCheckBox::indicator, QRadioButton::indicator { width: 16px; height: 16px; }
             QLineEdit { border: 1px solid #d5dde7; border-radius: 5px; padding: 7px; background: white; }
@@ -425,6 +439,7 @@ class WebPForge(QMainWindow):
         values = [path.name, path.suffix[1:].upper(), dimensions, size, status]
         for column, value in enumerate(values):
             item = QTableWidgetItem(value)
+            item.setForeground(QColor("#263348"))
             if column in (1, 2, 3, 4):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, column, item)
@@ -573,6 +588,10 @@ class WebPForge(QMainWindow):
     def open_online_version(self) -> None:
         if not QDesktopServices.openUrl(QUrl(ONLINE_URL)):
             QMessageBox.warning(self, APP_NAME, f"Could not open the online version:\n{ONLINE_URL}")
+
+    def open_about_page(self) -> None:
+        if not QDesktopServices.openUrl(QUrl(ABOUT_URL)):
+            QMessageBox.warning(self, APP_NAME, f"Could not open the About page:\n{ABOUT_URL}")
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._is_running():
